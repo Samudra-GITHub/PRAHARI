@@ -1,0 +1,66 @@
+﻿# Dependencies
+node_modules/
+.next/
+dist/
+build/
+out/
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+logs/
+
+# Cache
+.cache/
+.parcel-cache/
+.turbo/
+.vercel/
+coverage/
+
+# TypeScript
+*.tsbuildinfo
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+.ipynb_checkpoints/
+
+# AI Models / Weights
+models/
+weights/
+checkpoints/
+runs/
+wandb/
+mlruns/
+*.pt
+*.pth
+*.onnx
+*.ckpt
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Temp
+tmp/
+temp/
+*.tmp
+
+# Secrets
+*.pem
+*.key
+*.crt
+credentials*.json
+service-account*.json
