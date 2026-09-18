@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "prahari-backend",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "cd backend && node node_modules/next/dist/bin/next dev -p 3000 --webpack"],
+      "port": 3000
+    },
+    {
+      "name": "prahari-frontend",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "frontend/prahari-frontend-main", "run", "dev", "--", "-p", "3001"],
+      "port": 3001
+    }
+  ]
+}
