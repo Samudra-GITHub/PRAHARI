@@ -1,0 +1,28 @@
+# Build context for the backend image — keep it to what the build needs.
+
+node_modules
+.next
+.git
+
+# Secrets and local state never go into an image. Runtime config comes from
+# docker-compose.yml; the embedded PGlite database is local-dev only.
+.env*
+db
+*.log
+dev.pid
+
+# npm lockfile is a local artifact; bun.lock is the project's lockfile.
+package-lock.json
+
+# Not part of the running service.
+examples
+tests
+mini-services
+download
+.zscripts
+Caddyfile
+worklog.md
+AGENTS.md
+CLAUDE.md
+.claude
+.claude-flow

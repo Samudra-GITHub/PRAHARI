@@ -1,0 +1,317 @@
+// Prisma schema for the Mining Compliance Management System.
+//
+// Provider is set to `postgresql` because the application is designed to run
+// against a real PostgreSQL database in production. In this sandbox we use
+// PGlite (PostgreSQL 18 compiled to WASM, embedded in-process) via the
+// `prisma-pglite` adapter — so the same schema and the same SQL are exercised
+// against a true PostgreSQL engine during development and tests.
+//
+// Switching to a hosted PostgreSQL instance in production is a one-line
+// change in `prisma.config.ts` (the `pgliteDir` option) plus the standard
+// `DATABASE_URL` env var — no schema edits are required.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+// In Prisma v7+, the datasource `url` is no longer declared in the schema.
+// It is provided at runtime via the `adapter` option to `PrismaClient`.
+// See `src/lib/db.ts` for the PGlite-backed adapter implementation and
+// `prisma.config.ts` for migration-time configuration.
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum Role {
+  FIELD_INSPECTOR
+  MINE_OFFICIAL
+  CORPORATE_ADMIN
+  REGULATOR
+}
+
+enum InspectionStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  OVERDUE
+}
+
+enum InspectionType {
+  SAFETY
+  ENVIRONMENTAL
+  EQUIPMENT
+  COMPLIANCE
+  ROUTINE
+}
+
+enum AlertSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum AlertStatus {
+  OPEN
+  ACKNOWLEDGED
+  RESOLVED
+  DISMISSED
+}
+
+enum AlertType {
+  INSPECTION_OVERDUE
+  REPEATED_VIOLATIONS
+  HIGH_AI_RISK
+  MISSING_REPORT
+  ENVIRONMENTAL_THRESHOLD
+  MANUAL
+}
+
+enum ReportStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+}
+
+enum ReportType {
+  MONTHLY
+  QUARTERLY
+  ANNUAL
+  INCIDENT
+  COMPLIANCE
+}
+
+enum ViolationStatus {
+  OPEN
+  NOTIFIED
+  RECTIFIED
+  ESCALATED
+  CLOSED
+}
+
+enum ViolationSeverity {
+  MINOR
+  MAJOR
+  CRITICAL
+}
+
+// ---------------------------------------------------------------------------
+// Core models
+// ---------------------------------------------------------------------------
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  role         Role     @default(FIELD_INSPECTOR)
+  mineId       String? // For MINE_OFFICIAL — which mine they manage
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  mine                Mine?               @relation("MineOfficial", fields: [mineId], references: [id])
+  inspections         Inspection[]        @relation("InspectionInspector")
+  reportsAuthored     Report[]            @relation("ReportAuthor")
+  violationsIssued    Violation[]         @relation("ViolationIssuer")
+  auditLogs           AuditLog[]          @relation("AuditLogActor")
+  refreshTokens       RefreshToken[]      @relation("RefreshTokenOwner")
+  alertsAssigned      Alert[]             @relation("AlertAssignee")
+  alertsAcknowledged  Alert[]             @relation("AlertAcknowledger")
+
+  @@index([role])
+  @@index([mineId])
+}
+
+model Mine {
+  id            String   @id @default(cuid())
+  name          String
+  code          String   @unique
+  location      String
+  region        String?
+  status        String   @default("ACTIVE") // ACTIVE | INACTIVE | SUSPENDED
+  complianceScore Float  @default(100.0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  officials             User[]                @relation("MineOfficial")
+  inspections           Inspection[]          @relation("InspectionMine")
+  reports               Report[]              @relation("ReportMine")
+  violations            Violation[]           @relation("ViolationMine")
+  alerts                Alert[]               @relation("AlertMine")
+  environmentalReadings EnvironmentalReading[] @relation("EnvironmentalReadingMine")
+
+  @@index([region])
+  @@index([status])
+}
+
+model Inspection {
+  id              String            @id @default(cuid())
+  mineId          String
+  inspectorId     String
+  type             InspectionType   @default(ROUTINE)
+  status          InspectionStatus @default(SCHEDULED)
+  scheduledDate   DateTime
+  completedDate   DateTime?
+  summary         String?
+  findings        Json?
+  riskScore       Float?  // 0..1 — populated by AI risk endpoint
+  riskReasons     String[] @default([])
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  mine        Mine        @relation("InspectionMine", fields: [mineId], references: [id])
+  inspector   User        @relation("InspectionInspector", fields: [inspectorId], references: [id])
+  violations  Violation[] @relation("ViolationInspection")
+  triggeredAlerts Alert[] @relation("AlertInspection")
+
+  @@index([mineId])
+  @@index([inspectorId])
+  @@index([status])
+  @@index([scheduledDate])
+}
+
+model Alert {
+  id               String        @id @default(cuid())
+  type             AlertType     @default(MANUAL)
+  severity         AlertSeverity @default(MEDIUM)
+  status           AlertStatus   @default(OPEN)
+  title            String
+  message          String
+  mineId           String?       // null = system-wide alert
+  inspectionId     String?       // link to triggering inspection if any
+  violationId      String?       // link to triggering violation if any
+  reportId         String?       // link to triggering report if any
+  triggerData      Json?         // arbitrary payload describing the trigger
+  assignedToId     String?       // user assigned to handle it
+  acknowledgedById String?
+  acknowledgedAt   DateTime?
+  resolvedAt       DateTime?
+  dueDate          DateTime?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  mine           Mine?        @relation("AlertMine", fields: [mineId], references: [id])
+  inspection     Inspection?  @relation("AlertInspection", fields: [inspectionId], references: [id])
+  violation      Violation?   @relation("AlertViolation", fields: [violationId], references: [id])
+  report         Report?      @relation("AlertReport", fields: [reportId], references: [id])
+  assignedTo     User?        @relation("AlertAssignee", fields: [assignedToId], references: [id])
+  acknowledgedBy User?        @relation("AlertAcknowledger", fields: [acknowledgedById], references: [id])
+
+  @@index([mineId])
+  @@index([status])
+  @@index([severity])
+  @@index([type])
+  @@index([assignedToId])
+}
+
+model Report {
+  id            String       @id @default(cuid())
+  mineId        String
+  authorId      String
+  type          ReportType
+  status        ReportStatus @default(DRAFT)
+  title         String
+  body          String
+  periodStart   DateTime
+  periodEnd     DateTime
+  submittedAt   DateTime?
+  approvedAt    DateTime?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  mine   Mine   @relation("ReportMine", fields: [mineId], references: [id])
+  author User   @relation("ReportAuthor", fields: [authorId], references: [id])
+  alerts Alert[] @relation("AlertReport")
+
+  @@index([mineId])
+  @@index([authorId])
+  @@index([status])
+  @@index([periodEnd])
+}
+
+model Violation {
+  id              String            @id @default(cuid())
+  mineId          String
+  inspectionId    String?
+  issuedById      String
+  severity        ViolationSeverity @default(MINOR)
+  status          ViolationStatus   @default(OPEN)
+  code            String            // e.g. "ENV-001"
+  description     String
+  penaltyAmount   Float             @default(0)
+  rectifiedAt     DateTime?
+  escalatedAt     DateTime?
+  escalationCount Int               @default(0)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  mine        Mine?        @relation("ViolationMine", fields: [mineId], references: [id])
+  inspection  Inspection?  @relation("ViolationInspection", fields: [inspectionId], references: [id])
+  issuedBy    User         @relation("ViolationIssuer", fields: [issuedById], references: [id])
+  alerts      Alert[]      @relation("AlertViolation")
+
+  @@index([mineId])
+  @@index([inspectionId])
+  @@index([issuedById])
+  @@index([status])
+  @@index([code])
+}
+
+model EnvironmentalReading {
+  id          String   @id @default(cuid())
+  mineId      String
+  parameter   String   // e.g. "PM2_5", "NOISE_DB", "WATER_PH"
+  value       Float
+  unit        String
+  threshold   Float?   // optional per-reading threshold; falls back to default
+  exceededAt  DateTime?
+  createdAt   DateTime @default(now())
+
+  mine Mine @relation("EnvironmentalReadingMine", fields: [mineId], references: [id])
+
+  @@index([mineId])
+  @@index([parameter])
+  @@index([createdAt])
+}
+
+model AuditLog {
+  id           String   @id @default(cuid())
+  actorId      String?  // null = system
+  action       String   // e.g. "USER_LOGIN", "INSPECTION_CREATE"
+  resource     String   // e.g. "Mine", "Inspection"
+  resourceId   String?
+  payload      Json?    // request snapshot
+  resultHash   String?  // SHA-256 hash of canonical payload
+  prevHash     String?  // hash of the previous log entry — for chain verification
+  createdAt    DateTime @default(now())
+
+  actor User? @relation("AuditLogActor", fields: [actorId], references: [id])
+
+  @@index([actorId])
+  @@index([action])
+  @@index([resource])
+  @@index([createdAt])
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String   @unique // SHA-256 of the raw refresh token
+  revoked   Boolean  @default(false)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation("RefreshTokenOwner", fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([expiresAt])
+}
