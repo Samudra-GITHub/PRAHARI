@@ -125,4 +125,4 @@ MIT — see [LICENSE](./LICENSE).
 
 <br/>
 
-<sub>Built for Smart India Hackathon. Part of the Samudra OS product ecosystem — see the [profile](https://github.com/Samudra-GITHub) for the full lineup.</sub>
+<sub>Built for Smart India Hackathon. Part of the Sams Studio product ecosystem — see the [profile](https://github.com/Samudra-GITHub) for the full lineup.</sub>
