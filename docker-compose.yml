@@ -67,7 +67,7 @@ services:
 
   frontend:
     build:
-      context: ./frontend/prahari-frontend-main
+      context: ./frontend
       args:
         # Compiled into the build — see the frontend Dockerfile.
         BACKEND_ORIGIN: http://backend:3000
