@@ -4,122 +4,91 @@
 
 # PRAHARI
 
-**Mine compliance and safety monitoring with explainable risk scoring and a copilot that only narrates real data.**
-
-Inspections · violations · environmental readings · automatic alerts · tamper-evident audit log · built for the Smart India Hackathon
+**Mine compliance and safety monitoring, with explainable risk scoring and a copilot that only narrates real data.**
 
 <br />
 
-**[Overview](#overview)** &nbsp;·&nbsp; **[Features](#features)** &nbsp;·&nbsp; **[Getting started](#getting-started)** &nbsp;·&nbsp; **[Architecture](#architecture)** &nbsp;·&nbsp; **[Structure](#project-structure)**
+<img src="docs/screenshots/login.webp" alt="PRAHARI sign-in screen: Mining Compliance Management System, secure access, email and password" width="420" />
+<br />
+<sub>The sign-in screen. Everything behind it needs the backend and database running.</sub>
 
+<br />
 <br />
 
 ![Next.js](https://img.shields.io/badge/Next.js-16-000000?style=flat-square&logo=nextdotjs&logoColor=white) ![Prisma](https://img.shields.io/badge/Prisma-7-2d3748?style=flat-square&logo=prisma&logoColor=white) ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169e1?style=flat-square&logo=postgresql&logoColor=white) ![Docker](https://img.shields.io/badge/Docker-Compose-2496ed?style=flat-square&logo=docker&logoColor=white) ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178c6?style=flat-square&logo=typescript&logoColor=white) ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
+
+<br />
+
+**[Run it](#run-it)** &nbsp;·&nbsp; **[Features](#features)** &nbsp;·&nbsp; **[Architecture](#architecture)** &nbsp;·&nbsp; **[Installation](#installation)** &nbsp;·&nbsp; **[API](#api)**
 
 </div>
 
 ---
 
-## Overview
-
-Mine safety and environmental compliance produces a constant stream of inspection reports, violations and sensor readings, often spread across paper records and disconnected systems. PRAHARI centralises that data behind a role-based API and dashboard, raises alerts automatically when conditions are met, and keeps a tamper-evident audit trail of every action.
+Mine safety and environmental compliance produces a constant stream of inspection reports, violations and sensor readings, often spread across paper records and disconnected systems. PRAHARI puts that data behind a role-based API and dashboard, raises alerts automatically when conditions are met, and keeps a tamper-evident audit trail of every action. It was built for the Smart India Hackathon.
 
 Two design choices stand out:
 
 - **Explainable risk scoring.** Inspection risk is a deterministic 0 to 1 score with listed reasons, not an opaque model output.
 - **A copilot that can only narrate real data.** Questions are parsed deterministically, answered by RBAC-scoped database retrieval, and only then narrated by an LLM (Groq), so every number in an answer comes from the database.
 
-## Features
-
-- **Mines, inspections, violations, environmental readings** with full CRUD and role-scoped access
-- **Alerts** as a first-class resource, created by five idempotent workflow triggers: overdue inspections, repeated violations (3+ in 90 days), high AI risk (score of 0.8 or more), missing reports, and environmental thresholds
-- **AI risk scoring** per inspection, with reasons
-- **Copilot** chat that streams answers over retrieved, permission-filtered data
-- **Reports**, including a per-mine compliance report
-- **Audit log** with hash chaining and a verification endpoint
-- **Authentication**: JWT access tokens, rotating refresh tokens in an httpOnly cookie, bcrypt password hashing
-- **Four roles**: `FIELD_INSPECTOR`, `MINE_OFFICIAL`, `CORPORATE_ADMIN`, `REGULATOR`
-- **OpenAPI 3.1** spec at `/api/docs` and Swagger UI at `/api-docs`
-
-## Tech Stack
-
-| Layer | Technology |
-| --- | --- |
-| Backend | Next.js 16 route handlers, TypeScript, Prisma 7, Bun |
-| Database | PostgreSQL 16 (Docker) or embedded PGlite for local development |
-| Frontend | Next.js 16, React 19, Tailwind CSS v4, Radix / shadcn |
-| AI | Deterministic risk scorer, Groq for copilot narration |
-| Infrastructure | Docker Compose, Caddy (backend reverse-proxy config) |
-
-## Project Structure
-
-```
-PRAHARI/
-├── backend/                  # API (Next.js route handlers + Prisma)
-│   ├── src/app/api/          # auth, mines, inspections, violations, alerts, reports,
-│   │                         #   environmental-readings, audit-logs, ai, copilot, workflow, ...
-│   ├── src/lib/              # rbac, audit, ai-risk, workflow/, copilot/, openapi/, auth/
-│   ├── prisma/schema.prisma
-│   ├── scripts/              # seed.ts, demo-dataset.ts, smoke.ts
-│   ├── db/                   # Local embedded PGlite data (see Known issues)
-│   ├── Dockerfile  Caddyfile  docker-entrypoint.sh
-│   └── tests/                # Container build check scripts
-├── frontend/                 # Dashboard and copilot UI (Next.js)
-│   ├── app/                  # login, (app)/ dashboard, copilot
-│   ├── components/  services/  lib/  hooks/  types/
-│   └── Dockerfile
-├── abheeshta-frontend/       # Unmodified create-next-app scaffold (not used by the stack)
-├── docker-compose.yml        # db + backend + frontend
-└── .env.example
-```
-
-## Getting Started
-
-### Docker (recommended)
+## Run it
 
 ```bash
-cp .env.example .env     # fill in POSTGRES_PASSWORD, JWT_ACCESS_SECRET, JWT_REFRESH_SECRET, CRON_SECRET
+git clone https://github.com/Samudra-GITHub/PRAHARI.git
+cd PRAHARI
+cp .env.example .env        # fill in the empty secrets (openssl rand -hex 32)
 docker compose up --build
 ```
 
-| Service | URL |
-| --- | --- |
-| Frontend | http://localhost:3001 |
-| API and Swagger UI | http://localhost:3000/api-docs |
+Then open the frontend at <http://localhost:3001> and the API with Swagger UI at <http://localhost:3000/api-docs>. The stack seeds a fictional mine portfolio and four demo accounts by default (see `backend/scripts/seed.ts`).
 
-Generate each secret with `openssl rand -hex 32`. Compose refuses to start while a required value is empty. Use `http://localhost`, not a LAN IP, over plain HTTP, because the production refresh cookie is `Secure`.
+## Features
 
-The stack seeds a fictional mine portfolio and four demo accounts by default (`SEED_DEMO_DATA=true`, see `backend/scripts/seed.ts`). Set `SEED_DEMO_DATA=false` for any real use.
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <h3>Compliance data, scoped by role</h3>
+      <p>Mines, inspections, violations and environmental readings with full CRUD. Four roles (<code>FIELD_INSPECTOR</code>, <code>MINE_OFFICIAL</code>, <code>CORPORATE_ADMIN</code>, <code>REGULATOR</code>) see only the mines they should.</p>
+    </td>
+    <td width="50%" valign="top">
+      <h3>Automatic alerts</h3>
+      <p>Alerts are a first-class resource, created by five idempotent triggers: overdue inspections, repeated violations (3 or more in 90 days), high AI risk (0.8 or above), missing reports and environmental thresholds.</p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <h3>Explainable risk scoring</h3>
+      <p>A deterministic scorer weighs findings, severity keywords, the mine's compliance score and inspection status, and stores the score together with its reasons.</p>
+    </td>
+    <td width="50%" valign="top">
+      <h3>A grounded copilot</h3>
+      <p>Chat streams as newline-delimited JSON. The first message carries the real retrieved data so the UI can show evidence immediately; the model only narrates it.</p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <h3>Tamper-evident audit log</h3>
+      <p>Every action is audited. Each row stores a hash chained to the previous one, and <code>/api/audit-logs/verify</code> walks the chain to detect tampering.</p>
+    </td>
+    <td width="50%" valign="top">
+      <h3>Standards-based API</h3>
+      <p>JWT access tokens with rotating refresh tokens in an httpOnly cookie, bcrypt password hashing, an OpenAPI 3.1 spec at <code>/api/docs</code> and Swagger UI at <code>/api-docs</code>.</p>
+    </td>
+  </tr>
+</table>
 
-### Local development (without Docker)
+**Also:** per-mine compliance reports; a dashboard summary endpoint; a demo dataset and a smoke-test script in `backend/scripts/`.
 
-Requires [Bun](https://bun.sh) for the backend.
+## Tech stack
 
-```bash
-# backend (port 3000), uses embedded PGlite when DATABASE_URL is unset
-cd backend
-bun install
-bun run db:push
-bun run seed
-bun run dev
-
-# frontend (port 3001), in another terminal
-cd frontend
-npm install
-npm run dev -- -p 3001
-```
-
-## Configuration
-
-| Variable | Purpose |
-| --- | --- |
-| `POSTGRES_USER`, `POSTGRES_DB`, `POSTGRES_PASSWORD` | Database credentials for Compose |
-| `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET` | Token signing secrets (required) |
-| `JWT_ACCESS_TTL`, `JWT_REFRESH_TTL` | Token lifetimes (defaults `15m`, `7d`) |
-| `CRON_SECRET` | Authorises `POST /api/workflow/run` via the `x-cron-secret` header |
-| `SEED_DEMO_DATA` | Seed demo accounts and data (default `true` in Compose) |
-| `GROQ_API_KEY`, `GROQ_MODEL` | Copilot LLM. Read by the backend, but not forwarded by `docker-compose.yml` yet |
-| `BACKEND_ORIGIN` | Frontend build argument for the `/api` rewrite target |
+| Layer | Technology |
+| :-- | :-- |
+| Backend | Next.js 16 route handlers, TypeScript, Prisma 7, Bun |
+| Database | PostgreSQL 16 (Docker), or embedded PGlite for local development |
+| Frontend | Next.js 16, React 19, Tailwind CSS 4, Radix and shadcn |
+| AI | A deterministic risk scorer, and Groq for copilot narration |
+| Infrastructure | Docker Compose, Caddy (backend reverse-proxy config) |
 
 ## Architecture
 
@@ -131,29 +100,87 @@ flowchart LR
     B --> G[Groq<br/>copilot narration]
 ```
 
-The browser only talks to the frontend origin, which rewrites `/api/*` to the backend, so no CORS is needed and the refresh cookie stays same-origin. Every route is wrapped in `requireRole`, which verifies the JWT, loads the user and enforces the permission matrix; list queries are scoped to the mines a role may see. All responses use one envelope, `{ ok: true, data }` or `{ ok: false, error }`. The audit log chains each row to the previous one by hash, and `/api/audit-logs/verify` walks the chain to detect tampering.
+The browser only talks to the frontend origin, which rewrites `/api/*` to the backend, so no CORS is needed and the refresh cookie stays same-origin. Every route is wrapped in `requireRole`, which verifies the JWT, loads the user and enforces the permission matrix; list queries are scoped to the mines a role may see. All responses use one envelope, `{ ok: true, data }` or `{ ok: false, error }`.
 
-### Main endpoints
+```text
+PRAHARI/
+├── backend/                  API: Next.js route handlers and Prisma
+│   ├── src/app/api/          auth, mines, inspections, violations, alerts, reports,
+│   │                         environmental-readings, audit-logs, ai, copilot, workflow, ...
+│   ├── src/lib/              rbac, audit, ai-risk, workflow/, copilot/, openapi/, auth/
+│   ├── prisma/schema.prisma
+│   ├── scripts/              seed.ts, demo-dataset.ts, smoke.ts
+│   └── Dockerfile  Caddyfile  docker-entrypoint.sh
+├── frontend/                 Dashboard and copilot UI: login, (app)/ dashboard and copilot
+├── abheeshta-frontend/       Unmodified create-next-app scaffold (not used by the stack)
+├── docs/screenshots/
+├── docker-compose.yml        db + backend + frontend
+└── .env.example
+```
+
+### API
 
 | Area | Routes |
-| --- | --- |
+| :-- | :-- |
 | Auth | `/api/auth/login`, `register`, `refresh`, `logout`, `me` |
 | Data | `/api/mines`, `inspections`, `violations`, `environmental-readings`, `alerts`, `reports` |
 | Intelligence | `/api/ai/risk-score`, `/api/copilot/chat`, `/api/workflow/run`, `/api/dashboard/summary` |
 | Governance | `/api/audit-logs`, `/api/audit-logs/verify` |
 | Docs and health | `/api/docs`, `/api-docs`, `/api/health` |
 
-## Deployment
+## Installation
+
+### Docker (recommended)
+
+```bash
+cp .env.example .env
+docker compose up --build
+```
+
+| Service | URL |
+| :-- | :-- |
+| Frontend | <http://localhost:3001> |
+| API and Swagger UI | <http://localhost:3000/api-docs> |
+
+Use `http://localhost`, not a LAN IP, over plain HTTP, because the production refresh cookie is `Secure`. Set `SEED_DEMO_DATA=false` for any real use.
+
+### Local development (without Docker)
+
+Requires [Bun](https://bun.sh) for the backend.
+
+```bash
+# backend (port 3000), uses embedded PGlite when DATABASE_URL is unset
+cd backend && bun install && bun run db:push && bun run seed && bun run dev
+
+# frontend (port 3001), in another terminal
+cd frontend && npm install && npm run dev -- -p 3001
+```
+
+### Environment
+
+| Variable | Purpose |
+| :-- | :-- |
+| `POSTGRES_USER`, `POSTGRES_DB`, `POSTGRES_PASSWORD` | Database credentials for Compose |
+| `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET` | Token signing secrets (required) |
+| `JWT_ACCESS_TTL`, `JWT_REFRESH_TTL` | Token lifetimes (defaults `15m`, `7d`) |
+| `CRON_SECRET` | Authorises `POST /api/workflow/run` via the `x-cron-secret` header |
+| `SEED_DEMO_DATA` | Seed demo accounts and data (default `true` in Compose) |
+| `GROQ_API_KEY`, `GROQ_MODEL` | Copilot LLM. Read by the backend, but not forwarded by `docker-compose.yml` yet |
+| `BACKEND_ORIGIN` | Frontend build argument for the `/api` rewrite target |
+
+Compose refuses to start while a required secret is empty. Never commit `.env`.
+
+### Deploy
 
 `docker-compose.yml` runs PostgreSQL 16, the backend image (applies the Prisma schema on start, optionally seeds, serves the standalone build) and the frontend image. Real deployments should terminate TLS in front of the frontend.
 
-## Known issues and future improvements
+## Limitations
 
+- Screenshots show only the sign-in screen, because the rest of the UI needs the backend and a database.
 - `backend/db/` contains a committed embedded-PGlite database (about 40 MB). It is excluded from Docker images and is better kept out of git.
-- `abheeshta-frontend/` is an untouched scaffold and could be removed or filled in.
-- Forward `GROQ_API_KEY` through `docker-compose.yml` so the copilot works in the Compose stack.
-- Expanded reporting and export formats
+- `abheeshta-frontend/` is an untouched scaffold.
+- `GROQ_API_KEY` is not forwarded by `docker-compose.yml`, so the copilot does not work in the Compose stack yet.
 
 ## License
 
-MIT, see [LICENSE](LICENSE).
+[MIT](LICENSE).
