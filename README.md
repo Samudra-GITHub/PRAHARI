@@ -1,8 +1,24 @@
+<div align="center">
+
+<img src="backend/public/logo.svg" width="72" alt="PRAHARI logo" />
+
 # PRAHARI
 
-> Mine compliance and safety monitoring: inspections, violations, environmental readings and alerts, with explainable risk scoring and a data-grounded AI copilot.
+**Mine compliance and safety monitoring with explainable risk scoring and a copilot that only narrates real data.**
 
-Built for the Smart India Hackathon.
+Inspections · violations · environmental readings · automatic alerts · tamper-evident audit log · built for the Smart India Hackathon
+
+<br />
+
+**[Overview](#overview)** &nbsp;·&nbsp; **[Features](#features)** &nbsp;·&nbsp; **[Getting started](#getting-started)** &nbsp;·&nbsp; **[Architecture](#architecture)** &nbsp;·&nbsp; **[Structure](#project-structure)**
+
+<br />
+
+![Next.js](https://img.shields.io/badge/Next.js-16-000000?style=flat-square&logo=nextdotjs&logoColor=white) ![Prisma](https://img.shields.io/badge/Prisma-7-2d3748?style=flat-square&logo=prisma&logoColor=white) ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169e1?style=flat-square&logo=postgresql&logoColor=white) ![Docker](https://img.shields.io/badge/Docker-Compose-2496ed?style=flat-square&logo=docker&logoColor=white) ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178c6?style=flat-square&logo=typescript&logoColor=white) ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
+
+</div>
+
+---
 
 ## Overview
 
@@ -53,7 +69,6 @@ PRAHARI/
 │   ├── components/  services/  lib/  hooks/  types/
 │   └── Dockerfile
 ├── abheeshta-frontend/       # Unmodified create-next-app scaffold (not used by the stack)
-├── assets/                   # README placeholder graphics
 ├── docker-compose.yml        # db + backend + frontend
 └── .env.example
 ```
@@ -131,10 +146,6 @@ The browser only talks to the frontend origin, which rewrites `/api/*` to the ba
 ## Deployment
 
 `docker-compose.yml` runs PostgreSQL 16, the backend image (applies the Prisma schema on start, optionally seeds, serves the standalone build) and the frontend image. Real deployments should terminate TLS in front of the frontend.
-
-## Screenshots
-
-`assets/` contains placeholder graphics only, so no screenshots are shown.
 
 ## Known issues and future improvements
 
