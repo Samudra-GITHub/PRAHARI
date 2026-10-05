@@ -64,3 +64,9 @@ temp/
 *.crt
 credentials*.json
 service-account*.json
+
+# Added by repository cleanup
+.claude/
+.claude-flow/
+CLAUDE.md
+AGENTS.md
